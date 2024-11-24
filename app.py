@@ -51,7 +51,7 @@ def print_colored(text, color):
     print(f"{colors.get(color, '')}{text}{reset}")
 
 
-def generate_mytracklist(target_dir, folders_to_ignore, mytracklist_path):
+def generate_tracklist(target_dir, folders_to_ignore, mytracklist_path):
     """Generate mytracklist.csv file with track metadata from the root directory.
     It's a csv file that contains the metadata of all the tracks that are present in the specified path.
 
@@ -62,12 +62,19 @@ def generate_mytracklist(target_dir, folders_to_ignore, mytracklist_path):
         mytracklist_path (str): path to mytracklist.csv
     """
     global csv_index
+    csv_index = 0
     for (root, dirs, files) in os.walk(target_dir, topdown=True):
         if not any(root.startswith(folder) for folder in folders_to_ignore):
             print_colored(
                 f"Generating tracklist for tracks in {root}...", "blue")
             for file in files:
+                # Skip files starting with '._': when exporting tracks from a serato crate into a folder,
+                # a duplicate of the file gets created, which is called AppleDouble file, which returns None for all tags
                 try:
+                    if file.startswith("._"):
+                        # print_colored(
+                        #     f"Skipping unsupported file: {file}", "yellow")
+                        continue
                     track_full_path = os.path.join(root, file)
                     tag: TinyTag = TinyTag.get(track_full_path)
                     with open(mytracklist_path, 'a') as csvfile:
@@ -83,16 +90,20 @@ def generate_mytracklist(target_dir, folders_to_ignore, mytracklist_path):
                         f"Error processing {track_full_path}: {e}", "red")
 
             print_colored(
-                f"Tracklist for {root} folder generated! {len(files)} items added.", "green")
+                f"Tracklist for {root} folder generated! {csv_index} items added.", "green")
     print_colored(f"Tracklist complete.", "green")
 
 
 if __name__ == "__main__":
     cwd = os.getcwd()
     mytracklist_path = f"{cwd}/mytracklist.csv"
+    temptracklist_path = f"{cwd}/temptracklist.csv"
+    spotify_library = f"{cwd}/My Spotify Library 2.48.07 PM.csv"
     target_dir = "/Volumes/KEY2UNDRGRD/General"
+    crate_to_check_path = f"{target_dir}/crate_to_check"
     list_of_folders = []
-    csv_index = 0
 
     check_if_mytracklist_exists(mytracklist_path)
-    generate_mytracklist(target_dir, FOLDERS_TO_IGNORE, mytracklist_path)
+    check_if_mytracklist_exists(temptracklist_path)
+    generate_tracklist(target_dir, FOLDERS_TO_IGNORE, mytracklist_path)
+    generate_tracklist(crate_to_check_path, [], temptracklist_path)
