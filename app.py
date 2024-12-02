@@ -99,7 +99,7 @@ def generate_tracklist(target_dir, folders_to_ignore, mytracklist_path):
 
 
 # Define the threshold for similarity
-SIMILARITY_THRESHOLD = 60
+SIMILARITY_THRESHOLD = 85
 
 # Function to check if two tracks are similar
 
@@ -122,20 +122,34 @@ def are_albums_same(album1, album2):
 # Iterate through both dataframes and compare
 
 
+# def find_matches(df1, df2):
+#     matches = []
+#     for idx1, row1 in df1.iterrows():
+#         for idx2, row2 in df2.iterrows():
+#             if (are_tracks_similar(row1['Track name'], row2['Track name']) and
+#                     are_artists_same(row1['Artist name'], row2['Artist name']) and
+#                     are_albums_same(row1['Album'], row2['Album'])):
+#                 matches.append({
+#                     f"{df1}_index": idx1,
+#                     f"{df2}_index": idx2,
+#                     "Track 1": row1['Track name'],
+#                     "Track 2": row2['Track name'],
+#                     "Artist": row2['Artist name'],
+#                     "Album": row2['Album'],
+#                 })
+#     return matches
+
+
 def find_matches(df1, df2):
     matches = []
     for idx1, row1 in df1.iterrows():
         for idx2, row2 in df2.iterrows():
-            if (are_tracks_similar(row1['Track name'], row2['Track name']) and
-                    are_artists_same(row1['Artist name'], row2['Artist name']) and
-                    are_albums_same(row1['Album'], row2['Album'])):
+            if (not are_tracks_similar(row1['Track and Artist'], row2['Track and Artist'])):
                 matches.append({
                     f"{df1}_index": idx1,
                     f"{df2}_index": idx2,
-                    "Track 1": row1['Track name'],
-                    "Track 2": row2['Track name'],
-                    "Artist": row2['Artist name'],
-                    "Album": row2['Album'],
+                    "Track 1": row1['Track and Artist'],
+                    "Track 2": row2['Track and Artist'],
                 })
     return matches
 
@@ -280,14 +294,57 @@ if __name__ == "__main__":
     # Save the remainder to a CSV file
     remainder_spotify.to_csv("results/remainder_spotify.csv", index=False)
 
-    print(f"\n Remainder of Spotify playlist: {remainder_spotify}")
+    # print(f"\n Remainder of Spotify playlist: {remainder_spotify}")
 
-    # matches = find_matches(spotify_library_df_modif, mytracklist_df_modif)
+    # matches = find_matches(remainder_spotify, mytracklist_df_modif)
+    # match_idx = 0
     # # Print or process matches
     # for match in matches:
+    #     match_idx += 1
     #     print(f"Match found between:\n"
-    #           f" - DF1: {match['Track 1']} by {match['Artist']} on {match['Album']}\n"
-    #           f" - DF2: {match['Track 2']} by {match['Artist']} on {match['Album']}\n")
+    #           f" - DF1: {match['Track 1']}\n"
+    #           f" - DF2: {match['Track 2']}\n")
+
+    # print(f"{match_idx} Matches")
+
+    # Create new DataFrames with only one combined column
+    spotify_library_combined_df = pd.DataFrame({
+        "Track and Artist": spotify_library_df_modif["Track name"] + spotify_library_df_modif["Artist name"]
+    })
+
+    mytracklist_combined_df = pd.DataFrame({
+        "Track and Artist": mytracklist_df_modif["Track name"] + mytracklist_df_modif["Artist name"]
+    })
+
+    temptracklist_combined_df = pd.DataFrame({
+        "Track and Artist": temptracklist_df_modif["Track name"] + temptracklist_df_modif["Artist name"]
+    })
+
+    # Print to verify (optional)
+    print(spotify_library_combined_df.head())
+    print(mytracklist_combined_df.head())
+    print(temptracklist_combined_df.head())
+
+    test_1 = pd.merge(
+        spotify_library_combined_df[['Track and Artist']],
+        mytracklist_combined_df[['Track and Artist']],
+        on='Track and Artist',
+        how='inner'  # 'inner' will return only matching rows
+    )
+
+    print(test_1)
+
+    matches = find_matches(spotify_library_combined_df,
+                           mytracklist_combined_df)
+    match_idx = 0
+    # Print or process matches
+    for match in matches:
+        match_idx += 1
+        print(f"Match found between:\n"
+              f" - DF1: {match['Track 1']}\n"
+              f" - DF2: {match['Track 2']}\n")
+
+    print(f"{match_idx} Matches")
 
 
 # https://medium.com/@felixpratama242/scraping-spotify-playlist-using-python-and-selenium-17e0175f2db2
